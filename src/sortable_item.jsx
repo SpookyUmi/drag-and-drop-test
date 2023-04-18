@@ -11,7 +11,8 @@ export function Item(props) {
     alignItems: "center",
     justifyContent: "center",
     margin: "10px",
-    background: "black",
+    background: "#4D5866",
+    border: "1px solid #ababab",
     borderRadius: 8,
   };
 

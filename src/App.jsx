@@ -19,7 +19,7 @@ import SortableContainer, { Container } from "./container";
 import SortableItem, { Item } from "./sortable_item";
 
 const wrapperStyle = {
-  background: "#e9e9e9",
+  background: "#202226",
   padding: "50px 10px",
   borderRadius: 8,
   margin: 50,
@@ -157,11 +157,10 @@ export default function App() {
       const item = data.items.find((i) => i.id === activeId);
 
       return (
-        <Container row={item.row}>
-          {getItems(activeId).map((item) => (
-            <Item key={item.id} id={item.id} />
-          ))}
-        </Container>
+        <Container
+          row={item.row}
+          style={{ backgroundColor: item.row ? "#5D41A3" : "#3C424D" }}
+        ></Container>
       );
     }
 
@@ -179,7 +178,6 @@ export default function App() {
     const { active, over } = event;
     const { id: activeId } = active;
     let overId;
-    console.log("event", event);
     const activeIsRow = isRow(activeId);
     const activeIsContainer = isContainer(activeId);
 

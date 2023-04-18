@@ -55,7 +55,7 @@ export default function SortableContainer(props) {
       <Container
         ref={setNodeRef}
         row={row}
-        style={{ ...style, backgroundColor: row ? "#cdcdcd" : "#666" }}
+        style={{ ...style, backgroundColor: row ? "#5D41A3" : "#3C424D" }}
       >
         <SortableContext
           items={itemIds}
