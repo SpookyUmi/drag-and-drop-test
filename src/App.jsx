@@ -7,6 +7,7 @@ import {
   PointerSensor,
   useSensor,
   useSensors,
+  closestCenter,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -64,7 +65,7 @@ export default function App() {
         onDragStart={handleDragStart}
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
-        strategy={closestCorners}
+        strategy={closestCenter}
       >
         <SortableContext
           id="root"
@@ -199,8 +200,6 @@ export default function App() {
       if (overIsRow) {
         if (activeIsRow) return;
         if (!activeIsContainer) return;
-      } else if (activeIsContainer) {
-        return;
       }
     }
 
