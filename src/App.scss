@@ -1,0 +1,56 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.header {
+  padding: 8px;
+  color: white;
+  font-weight: bold;
+}
+
+h3 {
+  background: #3954A3;
+}
+
+.Container {
+  padding: 0 0 25px;
+  background-color: #3A424D;
+  border-right: none;
+  margin: 50px 25px;
+  flex: 1;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-self: stretch;
+  min-height: 70px;
+  overflow: hidden;
+}
+
+.Item {
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 10px;
+  background: #4D5866;
+  border: 1px solid #ababab;
+  border-radius: 8px;
+}
+
+.Wrapper {
+  background: #202226;
+  padding: 50px 10px;
+  border-radius: 8px;
+  margin: 50px;
+}
+
+.dragOverElement {
+  height: 20px;
+  width: 100%;
+  margin: 10px auto;
+  background: #998DF7;
+  border-radius: 5px;
+}

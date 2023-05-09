@@ -15,7 +15,9 @@
     "@stitches/react": "^1.2.8",
     "radash": "^10.8.1",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "sass": "^1.62.0",
+    "scss": "^0.2.4"
   },
   "devDependencies": {
     "@types/react": "^18.0.28",
