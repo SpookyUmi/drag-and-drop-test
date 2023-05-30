@@ -12,47 +12,163 @@ export type Action =
       type: "delay";
     };
 
+    function getItem(actions: Action[], locationParts: string[]): Action {
+
+      console.log("getItem", locationParts, 'from', actions);
+      // parsing first part to get an index
+      const index = parseInt(locationParts[0], 10);
+      const item = actions[index];
+
+      if (locationParts.length === 1) {
+        return item;
+      }
+
+        const nextActions = (item as {type: string} & Record<string, Action[]> | undefined )?.[locationParts[1]];
+        if (nextActions?.length) {
+          return getItem(nextActions, locationParts.slice(2));
+        } else {
+          throw new Error(`Invalid location: ${locationParts}`);
+        }
+    }
+
+    function removeItem(actions: Action[], locationParts: string[]): Action[] {
+      // splitting the location so we isolate each step to go
+      console.log("removeItem", locationParts, 'from', actions);
+      // parsing first part to get an index
+
+      const index = parseInt(locationParts[0], 10);
+
+      if (locationParts.length === 1) {
+        return [...actions.slice(0, index), ...actions.slice(index+1)];
+      }
+
+      const item = actions[index];
+
+      const nextActions = (
+        item as ({ type: string } & Record<string, Action[]>) | undefined
+      )?.[locationParts[1]];
+      if (nextActions) {
+        const updatedAction: Action = {
+          ...item,
+          [locationParts[1]]: removeItem(nextActions, locationParts.slice(2)),
+        };
+        return [...actions.slice(0, index), updatedAction, ...actions.slice(index+1)]
+      } else {
+        throw new Error(`Invalid location: ${locationParts}`);
+      }
+
+    }
+
+    function addItem(actions: Action[], locationParts: string[], action: Action): Action[] {
+      // splitting the location so we isolate each step to go
+      console.log("addItem",action, "to", actions, "at", locationParts,);
+      // parsing first part to get an index
+
+      const index = parseInt(locationParts[0], 10);
+
+      if (locationParts.length === 1) {
+        return [...actions.slice(0, index), action, ...actions.slice(index)];
+      }
+
+      const item = actions[index];
+
+      const nextActions = (
+        item as ({ type: string } & Record<string, Action[]>) | undefined
+      )?.[locationParts[1]];
+      if (nextActions) {
+        const updatedAction: Action = {
+          ...item,
+          [locationParts[1]]: addItem(nextActions, locationParts.slice(2), action),
+        };
+        return [...actions.slice(0, index), updatedAction, ...actions.slice(index+1)]
+      } else {
+        throw new Error(`Invalid location: ${locationParts}`);
+      }
+    }
+
+function moveItem(actions: Action[], fromLocation: string, toLocation: string): Action[] {
+  console.log('actions', actions, 'from', fromLocation, 'to', toLocation);
+
+  const fromLocationParts =  fromLocation
+  .split(".")
+  .filter((e) => e !== "undefined"); // TODO: work out why `undefined` shows up first
+  const toLocationParts =  (toLocation + ".0") // FIXME: assume we're adding to the beginning rather than to a specific index in the list
+  .split(".")
+  .filter((e) => e !== "undefined");
+
+
+  const actionMoved = getItem(actions, fromLocationParts);
+  console.log('actionMoved', actionMoved);
+  actions = removeItem(actions,  fromLocationParts);
+
+  // TODO: Update index of toLocationParts based on fromLocationParts, in case action has been removed from an index before an item being added to
+  // e.g.
+  // [15, else, 0] - delay moving to
+  // [15, else, 1, then, 0] becomes [15, else, 0, then, 0]
+  if (toLocationParts.join('.').startsWith(fromLocationParts.slice(0, fromLocationParts.length - 1).join('.'))) {
+    const removedFromIndex = parseInt(fromLocationParts[fromLocationParts.length - 1]);
+    const addingToIndex = parseInt(toLocationParts[fromLocationParts.length - 1]);
+    if (removedFromIndex < addingToIndex) {
+      toLocationParts[fromLocationParts.length - 1] = (addingToIndex - 1).toString();
+    }
+  }
+
+  console.log("actions after remove", actions);
+  actions = addItem(actions, toLocationParts, actionMoved);
+  console.log("actions after added", actions);
+  return actions;
+}
+
 //droppable
 export function ActionList({
   actions,
   updateActions,
-  id
+  id,
+  allActions,
 }: {
   actions: Action[];
   updateActions: (actions: Action[]) => void;
   id: string;
+  allActions: Action[];
 }) {
   //@ts-ignore
   const initSortableList = (e, drop) => {
     e.preventDefault();
     //const draggingItem = document.querySelector(".dragging") as HTMLElement;
-    const draggingItem = drop
-      ? (document.querySelector(".dragging") as HTMLElement)
-      : (document.getElementById("dragbar") as HTMLElement);
-    if (draggingItem && !drop) draggingItem.style.display = "block";
-    const actionList = document.getElementById(id);
-    // Getting all items except currently dragging and making array of them
-    let siblings = [
-      ...(actionList?.querySelectorAll(
-        ":not(.dragging)"
-      ) as NodeListOf<Element>),
-    ] as HTMLElement[];
-    // Finding the sibling after which the dragging item should be placed
-    let nextSibling = siblings.find((sibling) => {
-      return e.clientY <= sibling.offsetTop + sibling.offsetHeight / 2;
-    });
+    // const draggingItem = document.getElementById("dragbar") as HTMLElement;
+    // if (draggingItem && !drop) draggingItem.style.display = "block";
+    // const actionList = document.getElementById(id);
+    // let siblings = [
+    //   ...(actionList?.querySelectorAll(
+    //     ":not(.dragging)"
+    //   ) as NodeListOf<Element> | undefined) ?? [],
+    // ] as HTMLElement[];
+    // // Finding the sibling after which the dragging item should be placed
+    // let nextSibling = siblings.find((sibling) => {
+    //   return e.clientY <= sibling.offsetTop + sibling.offsetHeight / 2;
+    // });
     // Inserting the dragging item before the found sibling
-    actionList?.insertBefore(draggingItem as HTMLElement, nextSibling as HTMLElement);
+    // Handle data moves
+    // Work with ids
+    //actionList?.insertBefore(draggingItem as HTMLElement, nextSibling as HTMLElement);
+
+    // - Remove item from "actions" using old ID
+    // - Then add item to "actions" using new ID
   };
 
-  //@ts-ignore
-  function drop(ev) {
-    initSortableList(ev, true);
+
+  function drop(ev: React.DragEvent<HTMLElement>) {
+    //initSortableList(ev, true);
     ev.preventDefault();
     ev.stopPropagation();
-    const dragBar = document.getElementById("dragbar");
-    if (dragBar) dragBar.style.display = "none";
-    const data = ev.dataTransfer.getData("dragElement");
+    // const dragBar = document.getElementById("dragbar");
+    // if (dragBar) dragBar.style.display = "none";
+    const fromLocationId = ev.dataTransfer.getData("dragElementId");
+    if (!allActions) return;
+    console.log('drop', ev.currentTarget);
+    const newActions = moveItem(allActions, fromLocationId, ev.currentTarget.id || 'undefined'); // FIXME: top level container needs to be called "undefined"
+    console.log('new actions', newActions);
+    updateActions(newActions);
     //ev.target.appendChild(document.getElementById(data));
   }
 
@@ -60,14 +176,22 @@ export function ActionList({
   function dragEnter(ev) {
     ev.preventDefault();
     ev.stopPropagation();
-    // const dragBar = document.getElementById("dragbar");
-    // if (dragBar) dragBar.style.display = "block";
-    // ev.target.appendChild(dragBar);
+    //const dragBar = document.getElementById("dragbar");
+    //if (dragBar) dragBar.style.display = "block";
+    //ev.target.appendChild(dragBar);
   }
 
   //@ts-ignore
   function dragOver(ev) {
-    initSortableList(ev, false);
+    //initSortableList(ev, false);
+    // const fromLocationId = ev.dataTransfer.getData("dragElementId");
+    // const newActions = moveItem(
+    //   allActions,
+    //   fromLocationId,
+    //   ev.currentTarget.id || "undefined"
+    // );
+    // console.log("new actions", newActions);
+    // updateActions(newActions);
     ev.preventDefault();
     ev.stopPropagation();
   }
@@ -76,13 +200,12 @@ export function ActionList({
   function handleDragLeave(ev) {
     ev.preventDefault();
     ev.stopPropagation();
-    // const dragBar = document.getElementById(dragBarId as string);
-    // if (dragBar) dragBar.style.display = "none";
   }
 
   return (
     //@ts-ignore
     <section
+    //handle event bubbling: onDropCapture ?
       onDrop={drop}
       onDragEnter={dragEnter}
       onDragOver={dragOver}
@@ -94,17 +217,13 @@ export function ActionList({
           id={`${id}.${index}`}
           key={`${id}.${index}`}
           action={action}
-          updateAction={(action) =>
-            updateActions([
-              ...actions.slice(0, index),
-              action,
-              ...actions.slice(index + 1),
-            ])
-          }
+          allActions={allActions}
+          updateActions={updateActions}
         />
       ))}
       <AddActionButtons
-        addAction={(newAction) => updateActions([...actions, newAction])}
+        location={(id + '.' + actions.length)?.replace(/^undefined\./, '').split('.')}
+        addAction={(action, location) => updateActions(addItem(allActions, location, action))}
       />
     </section>
   );
@@ -113,12 +232,14 @@ export function ActionList({
 //draggable
 export function ActionItem({
   action,
-  updateAction,
-  id
+  updateActions,
+  id,
+  allActions,
 }: {
   id: string;
   action: Action;
-  updateAction: (actions: Action) => void;
+  updateActions: (actions: Action[]) => void;
+  allActions: Action[];
 }) {
   const style = {
     flex: 1,
@@ -134,15 +255,11 @@ export function ActionItem({
     top: 0,
   } as React.CSSProperties;
 
-  //@ts-ignore
-  // function drag(ev) {
-  //   ev.dataTransfer.setData("dragElement", ev.target.id);
-  // }
 
   //@ts-ignore
   function handleDragStart(ev) {
     //ev.preventDefault();
-    ev.dataTransfer.setData("dragElement", ev.target.id);
+    ev.dataTransfer.setData("dragElementId", ev.target.id);
     const item = ev.target;
     setTimeout(() => item.classList.add("dragging"), 10);
   }
@@ -158,8 +275,8 @@ export function ActionItem({
     case "delay":
       return (
         <section
-          id={`${id}.delay`}
-          className="action Container"
+        id={id}
+        className="action Container"
           style={{ ...style, border: "3px solid #318AA3" }}
           draggable="true"
           //@ts-ignore
@@ -175,8 +292,8 @@ export function ActionItem({
     case "if_else":
       return (
         <section
-          id={`${id}.if_else`}
-          className="action Container"
+        id={id}
+        className="action Container"
           style={{ ...style, border: "3px solid #5D41A2" }}
           draggable="true"
           //@ts-ignore
@@ -190,17 +307,17 @@ export function ActionItem({
           <h3>Then</h3>
           <ActionList
             id={`${id}.then`}
+            allActions={allActions}
             actions={action.then}
-            updateActions={(actions) =>
-              updateAction({ ...action, then: actions })
+            updateActions={updateActions
             }
           />
           <h3>Otherwise</h3>
           <ActionList
             id={`${id}.else`}
+            allActions={allActions}
             actions={action.else}
-            updateActions={(actions) =>
-              updateAction({ ...action, else: actions })
+            updateActions={updateActions
             }
           />
         </section>
@@ -208,7 +325,7 @@ export function ActionItem({
     case "loop":
       return (
         <section
-          id={`${id}.loop`}
+          id={id}
           className="action Container"
           style={{ ...style, border: "3px solid #3954A3" }}
           draggable="true"
@@ -222,10 +339,9 @@ export function ActionItem({
           </header>
           <ActionList
             id={`${id}.do`}
+            allActions={allActions}
             actions={action.do}
-            updateActions={(actions) =>
-              updateAction({ ...action, do: actions })
-            }
+            updateActions={updateActions}
           />
         </section>
       );
@@ -233,16 +349,18 @@ export function ActionItem({
 }
 
 export function AddActionButtons({
+  location,
   addAction,
 }: {
-  addAction: (action: Action) => void;
+  location: string[],
+  addAction: (action: Action, location: string[]) => void;
 }) {
   return (
     <div>
       <button
         style={{ margin: 5 }}
         onClick={() => {
-          addAction({ type: "if_else", then: [], else: [] });
+          addAction({ type: "if_else", then: [], else: [] }, location);
         }}
       >
         Add If, Then, Otherwise
@@ -250,7 +368,7 @@ export function AddActionButtons({
       <button
         style={{ margin: 5 }}
         onClick={() => {
-          addAction({ type: "loop", do: [] });
+          addAction({ type: "loop", do: [] }, location);
         }}
       >
         Add Loop
@@ -258,7 +376,7 @@ export function AddActionButtons({
       <button
         style={{ margin: 5 }}
         onClick={() => {
-          addAction({ type: "delay" });
+          addAction({ type: "delay" }, location);
         }}
       >
         Add Delay

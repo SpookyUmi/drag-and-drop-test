@@ -19,7 +19,11 @@ export default function App() {
           borderRadius: 50,
         }}
       />
-      <ActionList id="" actions={actions} updateActions={setActions} />
+      <ActionList
+        allActions={actions}
+        actions={actions}
+        updateActions={setActions}
+      />
     </section>
   );
 }
