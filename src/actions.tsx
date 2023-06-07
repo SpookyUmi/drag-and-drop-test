@@ -422,10 +422,26 @@ export function DropZoneIndicator({
         opacity: visible ? 1 : 0, // must be visible and rendered for drag drop to work
         margin: "0 auto",
         width: "80%",
-        height: 25,
+        height: 15,
         backgroundColor: "fuchsia",
         borderRadius: 50,
+        position: "relative",
       }}
-    />
+    >
+      <span
+        style={{
+          position: "absolute",
+          display: "block",
+          fontSize: 24,
+          fontWeight: "bold",
+          color: "white",
+          left: -66,
+          top: -12,
+          zIndex: 1,
+        }}
+      >
+        &gt;
+      </span>
+    </span>
   );
 }
