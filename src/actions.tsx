@@ -1,3 +1,10 @@
+//TODO sorting elements in a list CHECK
+//TODO display a bar in the droppable zone CHECK
+//TODO DOM ids -> react props
+
+import React from "react";
+import { useState } from "react";
+
 export type Action =
   | {
       type: "if_else";
@@ -12,104 +19,131 @@ export type Action =
       type: "delay";
     };
 
-    function getItem(actions: Action[], locationParts: string[]): Action {
+function getItem(actions: Action[], locationParts: string[]): Action {
+  console.log("getItem", locationParts, "from", actions);
+  // parsing first part to get an index
+  const index = parseInt(locationParts[0], 10);
+  const item = actions[index];
 
-      console.log("getItem", locationParts, 'from', actions);
-      // parsing first part to get an index
-      const index = parseInt(locationParts[0], 10);
-      const item = actions[index];
+  if (locationParts.length === 1) {
+    return item;
+  }
 
-      if (locationParts.length === 1) {
-        return item;
-      }
+  const nextActions = (
+    item as ({ type: string } & Record<string, Action[]>) | undefined
+  )?.[locationParts[1]];
+  if (nextActions?.length) {
+    return getItem(nextActions, locationParts.slice(2));
+  } else {
+    throw new Error(`Invalid location: ${locationParts}`);
+  }
+}
 
-        const nextActions = (item as {type: string} & Record<string, Action[]> | undefined )?.[locationParts[1]];
-        if (nextActions?.length) {
-          return getItem(nextActions, locationParts.slice(2));
-        } else {
-          throw new Error(`Invalid location: ${locationParts}`);
-        }
-    }
+function removeItem(actions: Action[], locationParts: string[]): Action[] {
+  // splitting the location so we isolate each step to go
+  console.log("removeItem", locationParts, "from", actions);
+  // parsing first part to get an index
 
-    function removeItem(actions: Action[], locationParts: string[]): Action[] {
-      // splitting the location so we isolate each step to go
-      console.log("removeItem", locationParts, 'from', actions);
-      // parsing first part to get an index
+  const index = parseInt(locationParts[0], 10);
 
-      const index = parseInt(locationParts[0], 10);
+  if (locationParts.length === 1) {
+    return [...actions.slice(0, index), ...actions.slice(index + 1)];
+  }
 
-      if (locationParts.length === 1) {
-        return [...actions.slice(0, index), ...actions.slice(index+1)];
-      }
+  const item = actions[index];
 
-      const item = actions[index];
+  const nextActions = (
+    item as ({ type: string } & Record<string, Action[]>) | undefined
+  )?.[locationParts[1]];
+  if (nextActions) {
+    const updatedAction: Action = {
+      ...item,
+      [locationParts[1]]: removeItem(nextActions, locationParts.slice(2)),
+    };
+    return [
+      ...actions.slice(0, index),
+      updatedAction,
+      ...actions.slice(index + 1),
+    ];
+  } else {
+    throw new Error(`Invalid location: ${locationParts}`);
+  }
+}
 
-      const nextActions = (
-        item as ({ type: string } & Record<string, Action[]>) | undefined
-      )?.[locationParts[1]];
-      if (nextActions) {
-        const updatedAction: Action = {
-          ...item,
-          [locationParts[1]]: removeItem(nextActions, locationParts.slice(2)),
-        };
-        return [...actions.slice(0, index), updatedAction, ...actions.slice(index+1)]
-      } else {
-        throw new Error(`Invalid location: ${locationParts}`);
-      }
+function addItem(
+  actions: Action[],
+  locationParts: string[],
+  action: Action
+): Action[] {
+  // splitting the location so we isolate each step to go
+  console.log("addItem", action, "to", actions, "at", locationParts);
+  // parsing first part to get an index
 
-    }
+  const index = parseInt(locationParts[0], 10);
 
-    function addItem(actions: Action[], locationParts: string[], action: Action): Action[] {
-      // splitting the location so we isolate each step to go
-      console.log("addItem",action, "to", actions, "at", locationParts,);
-      // parsing first part to get an index
+  if (locationParts.length === 1) {
+    return [...actions.slice(0, index), action, ...actions.slice(index)];
+  }
 
-      const index = parseInt(locationParts[0], 10);
+  const item = actions[index];
 
-      if (locationParts.length === 1) {
-        return [...actions.slice(0, index), action, ...actions.slice(index)];
-      }
+  const nextActions = (
+    item as ({ type: string } & Record<string, Action[]>) | undefined
+  )?.[locationParts[1]];
+  if (nextActions) {
+    const updatedAction: Action = {
+      ...item,
+      [locationParts[1]]: addItem(nextActions, locationParts.slice(2), action),
+    };
+    return [
+      ...actions.slice(0, index),
+      updatedAction,
+      ...actions.slice(index + 1),
+    ];
+  } else {
+    throw new Error(`Invalid location: ${locationParts}`);
+  }
+}
 
-      const item = actions[index];
+function moveItem(
+  actions: Action[],
+  fromLocation: string,
+  toLocation: string
+): Action[] {
+  console.log("actions", actions, "from", fromLocation, "to", toLocation);
 
-      const nextActions = (
-        item as ({ type: string } & Record<string, Action[]>) | undefined
-      )?.[locationParts[1]];
-      if (nextActions) {
-        const updatedAction: Action = {
-          ...item,
-          [locationParts[1]]: addItem(nextActions, locationParts.slice(2), action),
-        };
-        return [...actions.slice(0, index), updatedAction, ...actions.slice(index+1)]
-      } else {
-        throw new Error(`Invalid location: ${locationParts}`);
-      }
-    }
-
-function moveItem(actions: Action[], fromLocation: string, toLocation: string): Action[] {
-  console.log('actions', actions, 'from', fromLocation, 'to', toLocation);
-
-  const fromLocationParts =  fromLocation
-  .split(".")
-  .filter((e) => e !== "undefined"); // TODO: work out why `undefined` shows up first
-  const toLocationParts =  (toLocation + ".0") // FIXME: assume we're adding to the beginning rather than to a specific index in the list
-  .split(".")
-  .filter((e) => e !== "undefined");
-
+  const fromLocationParts = fromLocation
+    .split(".")
+    .filter((e) => e !== "undefined"); // TODO: work out why `undefined` shows up first
+  const toLocationParts = toLocation
+    .split(".")
+    .filter((e) => e !== "undefined");
 
   const actionMoved = getItem(actions, fromLocationParts);
-  console.log('actionMoved', actionMoved);
-  actions = removeItem(actions,  fromLocationParts);
+  console.log("actionMoved", actionMoved);
+  actions = removeItem(actions, fromLocationParts);
 
   // TODO: Update index of toLocationParts based on fromLocationParts, in case action has been removed from an index before an item being added to
   // e.g.
   // [15, else, 0] - delay moving to
   // [15, else, 1, then, 0] becomes [15, else, 0, then, 0]
-  if (toLocationParts.join('.').startsWith(fromLocationParts.slice(0, fromLocationParts.length - 1).join('.'))) {
-    const removedFromIndex = parseInt(fromLocationParts[fromLocationParts.length - 1]);
-    const addingToIndex = parseInt(toLocationParts[fromLocationParts.length - 1]);
+  if (
+    toLocationParts
+      .join(".")
+      .startsWith(
+        fromLocationParts.slice(0, fromLocationParts.length - 1).join(".")
+      )
+  ) {
+    const removedFromIndex = parseInt(
+      fromLocationParts[fromLocationParts.length - 1]
+    );
+    const addingToIndex = parseInt(
+      toLocationParts[fromLocationParts.length - 1]
+    );
     if (removedFromIndex < addingToIndex) {
-      toLocationParts[fromLocationParts.length - 1] = (addingToIndex - 1).toString();
+      toLocationParts[fromLocationParts.length - 1] = (
+        addingToIndex - 1
+      ).toString();
     }
   }
 
@@ -156,74 +190,43 @@ export function ActionList({
     // - Then add item to "actions" using new ID
   };
 
-
-  function drop(ev: React.DragEvent<HTMLElement>) {
-    //initSortableList(ev, true);
-    ev.preventDefault();
-    ev.stopPropagation();
-    // const dragBar = document.getElementById("dragbar");
-    // if (dragBar) dragBar.style.display = "none";
-    const fromLocationId = ev.dataTransfer.getData("dragElementId");
-    if (!allActions) return;
-    console.log('drop', ev.currentTarget);
-    const newActions = moveItem(allActions, fromLocationId, ev.currentTarget.id || 'undefined'); // FIXME: top level container needs to be called "undefined"
-    console.log('new actions', newActions);
-    updateActions(newActions);
-    //ev.target.appendChild(document.getElementById(data));
-  }
-
-  //@ts-ignore
-  function dragEnter(ev) {
-    ev.preventDefault();
-    ev.stopPropagation();
-    //const dragBar = document.getElementById("dragbar");
-    //if (dragBar) dragBar.style.display = "block";
-    //ev.target.appendChild(dragBar);
-  }
-
-  //@ts-ignore
-  function dragOver(ev) {
-    //initSortableList(ev, false);
-    // const fromLocationId = ev.dataTransfer.getData("dragElementId");
-    // const newActions = moveItem(
-    //   allActions,
-    //   fromLocationId,
-    //   ev.currentTarget.id || "undefined"
-    // );
-    // console.log("new actions", newActions);
-    // updateActions(newActions);
-    ev.preventDefault();
-    ev.stopPropagation();
-  }
-
-  //@ts-ignore
-  function handleDragLeave(ev) {
-    ev.preventDefault();
-    ev.stopPropagation();
-  }
+  const afterLastActionId = `${id}.${actions.length + 1}`;
 
   return (
     //@ts-ignore
-    <section
-    //handle event bubbling: onDropCapture ?
-      onDrop={drop}
-      onDragEnter={dragEnter}
-      onDragOver={dragOver}
-      onDragLeave={handleDragLeave}
-      id={id}
-    >
-      {actions?.map((action, index) => (
-        <ActionItem
-          id={`${id}.${index}`}
-          key={`${id}.${index}`}
-          action={action}
-          allActions={allActions}
-          updateActions={updateActions}
-        />
-      ))}
+    <section id={id}>
+      {actions?.map((action, index) => {
+        const actionId = `${id}.${index}`;
+        return (
+          <React.Fragment key={actionId}>
+            <DropZoneIndicator
+              id={actionId}
+              onDrop={(draggedId) => {
+                updateActions(moveItem(allActions, draggedId, actionId));
+              }}
+            />
+            <ActionItem
+              id={actionId}
+              action={action}
+              allActions={allActions}
+              updateActions={updateActions}
+            />
+          </React.Fragment>
+        );
+      })}
+      <DropZoneIndicator
+        id={afterLastActionId}
+        onDrop={(draggedId) => {
+          updateActions(moveItem(allActions, draggedId, afterLastActionId));
+        }}
+      />
       <AddActionButtons
-        location={(id + '.' + actions.length)?.replace(/^undefined\./, '').split('.')}
-        addAction={(action, location) => updateActions(addItem(allActions, location, action))}
+        location={(id + "." + actions.length)
+          ?.replace(/^undefined\./, "")
+          .split(".")}
+        addAction={(action, location) =>
+          updateActions(addItem(allActions, location, action))
+        }
       />
     </section>
   );
@@ -255,7 +258,6 @@ export function ActionItem({
     top: 0,
   } as React.CSSProperties;
 
-
   //@ts-ignore
   function handleDragStart(ev) {
     //ev.preventDefault();
@@ -275,8 +277,8 @@ export function ActionItem({
     case "delay":
       return (
         <section
-        id={id}
-        className="action Container"
+          id={id}
+          className="action Container"
           style={{ ...style, border: "3px solid #318AA3" }}
           draggable="true"
           //@ts-ignore
@@ -292,8 +294,8 @@ export function ActionItem({
     case "if_else":
       return (
         <section
-        id={id}
-        className="action Container"
+          id={id}
+          className="action Container"
           style={{ ...style, border: "3px solid #5D41A2" }}
           draggable="true"
           //@ts-ignore
@@ -309,16 +311,14 @@ export function ActionItem({
             id={`${id}.then`}
             allActions={allActions}
             actions={action.then}
-            updateActions={updateActions
-            }
+            updateActions={updateActions}
           />
           <h3>Otherwise</h3>
           <ActionList
             id={`${id}.else`}
             allActions={allActions}
             actions={action.else}
-            updateActions={updateActions
-            }
+            updateActions={updateActions}
           />
         </section>
       );
@@ -352,7 +352,7 @@ export function AddActionButtons({
   location,
   addAction,
 }: {
-  location: string[],
+  location: string[];
   addAction: (action: Action, location: string[]) => void;
 }) {
   return (
@@ -382,5 +382,50 @@ export function AddActionButtons({
         Add Delay
       </button>
     </div>
+  );
+}
+
+export function DropZoneIndicator({
+  id,
+  onDrop: onDropCallback,
+}: {
+  id: string;
+  onDrop: (draggedId: string) => void;
+}) {
+  const [visible, setVisible] = useState<boolean>(false);
+
+  function dragOver(ev: React.DragEvent<HTMLElement>) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+
+  function onDrop(ev: React.DragEvent<HTMLElement>) {
+    ev.preventDefault();
+    ev.stopPropagation();
+
+    const draggedId = ev.dataTransfer.getData("dragElementId");
+
+    draggedId && onDropCallback(draggedId);
+    setVisible(false);
+  }
+
+  return (
+    <span
+      onDrop={onDrop}
+      onDragOver={dragOver}
+      onDragEnter={() => setVisible(true)}
+      onDragLeave={() => setVisible(false)}
+      className="drop-zone-indicator"
+      id={id}
+      style={{
+        display: "block",
+        opacity: visible ? 1 : 0, // must be visible and rendered for drag drop to work
+        margin: "0 auto",
+        width: "80%",
+        height: 25,
+        backgroundColor: "fuchsia",
+        borderRadius: 50,
+      }}
+    />
   );
 }
