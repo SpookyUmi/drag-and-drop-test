@@ -15,11 +15,17 @@ h3 {
   background: #3954a3;
 }
 
+.DesignOptions {
+  button {
+    margin: 5px;
+  }
+}
+
 .Container {
-  padding: 0 0 25px;
+  padding: 0 0 10px;
   background-color: #3a424d;
   border-right: none;
-  margin: 0 25px;
+  margin: 10px 25px;
   flex: 1;
   border-radius: 8px;
   display: flex;
@@ -27,6 +33,10 @@ h3 {
   align-self: stretch;
   min-height: 70px;
   overflow: hidden;
+}
+
+.DesignOne .Container {
+  margin: 0 25px;
 }
 
 .Item {
@@ -47,10 +57,22 @@ h3 {
   margin: 50px;
 }
 
-.dragOverElement {
-  height: 20px;
+.DesignOne .dragging {
+  display: none;
+}
+
+.drop-zone-indicator {
+  display: block;
+  opacity: 0; // must be visible and rendered for drag drop to work
+  margin: 0 auto;
   width: 100%;
-  margin: 10px auto;
-  background: #998df7;
-  border-radius: 5px;
+  height: 20px;
+  background-color: rgba(123, 80, 252, 0.5);
+  transition: height 0.3s ease-in-out;
+}
+
+.DesignOne .drop-zone-indicator.visible {
+  opacity: 1;
+  margin: 5px auto;
+  height: 130px;
 }

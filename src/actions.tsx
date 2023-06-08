@@ -1,6 +1,11 @@
 //TODO sorting elements in a list CHECK
 //TODO display a bar in the droppable zone CHECK
-//TODO DOM ids -> react props
+//TODO DOM ids -> react props CHECK
+
+// Design options:
+// Drag indicator: show over top of everything, show to the side, animations?
+// Drop target: outline, opacity, animations?
+// Dragged item: Collapse to header only, summary of contents
 
 import React from "react";
 import { useState } from "react";
@@ -157,56 +162,33 @@ function moveItem(
 export function ActionList({
   actions,
   updateActions,
-  id,
+  actionListLocation,
   allActions,
 }: {
   actions: Action[];
   updateActions: (actions: Action[]) => void;
-  id: string;
+  actionListLocation: string;
   allActions: Action[];
 }) {
-  //@ts-ignore
-  const initSortableList = (e, drop) => {
-    e.preventDefault();
-    //const draggingItem = document.querySelector(".dragging") as HTMLElement;
-    // const draggingItem = document.getElementById("dragbar") as HTMLElement;
-    // if (draggingItem && !drop) draggingItem.style.display = "block";
-    // const actionList = document.getElementById(id);
-    // let siblings = [
-    //   ...(actionList?.querySelectorAll(
-    //     ":not(.dragging)"
-    //   ) as NodeListOf<Element> | undefined) ?? [],
-    // ] as HTMLElement[];
-    // // Finding the sibling after which the dragging item should be placed
-    // let nextSibling = siblings.find((sibling) => {
-    //   return e.clientY <= sibling.offsetTop + sibling.offsetHeight / 2;
-    // });
-    // Inserting the dragging item before the found sibling
-    // Handle data moves
-    // Work with ids
-    //actionList?.insertBefore(draggingItem as HTMLElement, nextSibling as HTMLElement);
-
-    // - Remove item from "actions" using old ID
-    // - Then add item to "actions" using new ID
-  };
-
-  const afterLastActionId = `${id}.${actions.length + 1}`;
+  const afterLastActionLocation = `${actionListLocation}.${actions.length + 1}`;
 
   return (
     //@ts-ignore
-    <section id={id}>
+    <section>
       {actions?.map((action, index) => {
-        const actionId = `${id}.${index}`;
+        const actionLocation = `${actionListLocation}.${index}`;
         return (
-          <React.Fragment key={actionId}>
+          <React.Fragment key={actionLocation}>
             <DropZoneIndicator
-              id={actionId}
-              onDrop={(draggedId) => {
-                updateActions(moveItem(allActions, draggedId, actionId));
+              actionLocation={actionLocation}
+              onDrop={(draggedActionLocation) => {
+                updateActions(
+                  moveItem(allActions, draggedActionLocation, actionLocation)
+                );
               }}
             />
             <ActionItem
-              id={actionId}
+              actionLocation={actionLocation}
               action={action}
               allActions={allActions}
               updateActions={updateActions}
@@ -215,13 +197,15 @@ export function ActionList({
         );
       })}
       <DropZoneIndicator
-        id={afterLastActionId}
-        onDrop={(draggedId) => {
-          updateActions(moveItem(allActions, draggedId, afterLastActionId));
+        actionLocation={afterLastActionLocation}
+        onDrop={(draggedActionLocation) => {
+          updateActions(
+            moveItem(allActions, draggedActionLocation, afterLastActionLocation)
+          );
         }}
       />
       <AddActionButtons
-        location={(id + "." + actions.length)
+        location={(actionListLocation + "." + actions.length)
           ?.replace(/^undefined\./, "")
           .split(".")}
         addAction={(action, location) =>
@@ -236,10 +220,10 @@ export function ActionList({
 export function ActionItem({
   action,
   updateActions,
-  id,
+  actionLocation,
   allActions,
 }: {
-  id: string;
+  actionLocation: string;
   action: Action;
   updateActions: (actions: Action[]) => void;
   allActions: Action[];
@@ -247,6 +231,8 @@ export function ActionItem({
   const style = {
     flex: 1,
     position: "relative",
+    transition: "all 0.3s ease-in-out",
+    overflow: "hidden",
   } as React.CSSProperties;
 
   let handleStyle = {
@@ -261,7 +247,7 @@ export function ActionItem({
   //@ts-ignore
   function handleDragStart(ev) {
     //ev.preventDefault();
-    ev.dataTransfer.setData("dragElementId", ev.target.id);
+    ev.dataTransfer.setData("actionLocation", ev.target.dataset.actionLocation);
     const item = ev.target;
     setTimeout(() => item.classList.add("dragging"), 10);
   }
@@ -277,7 +263,7 @@ export function ActionItem({
     case "delay":
       return (
         <section
-          id={id}
+          data-action-location={actionLocation}
           className="action Container"
           style={{ ...style, border: "3px solid #318AA3" }}
           draggable="true"
@@ -294,7 +280,7 @@ export function ActionItem({
     case "if_else":
       return (
         <section
-          id={id}
+          data-action-location={actionLocation}
           className="action Container"
           style={{ ...style, border: "3px solid #5D41A2" }}
           draggable="true"
@@ -308,14 +294,14 @@ export function ActionItem({
           </header>
           <h3>Then</h3>
           <ActionList
-            id={`${id}.then`}
+            actionListLocation={`${actionLocation}.then`}
             allActions={allActions}
             actions={action.then}
             updateActions={updateActions}
           />
           <h3>Otherwise</h3>
           <ActionList
-            id={`${id}.else`}
+            actionListLocation={`${actionLocation}.else`}
             allActions={allActions}
             actions={action.else}
             updateActions={updateActions}
@@ -325,7 +311,7 @@ export function ActionItem({
     case "loop":
       return (
         <section
-          id={id}
+          data-action-location={actionLocation}
           className="action Container"
           style={{ ...style, border: "3px solid #3954A3" }}
           draggable="true"
@@ -338,7 +324,7 @@ export function ActionItem({
             Loop
           </header>
           <ActionList
-            id={`${id}.do`}
+            actionListLocation={`${actionLocation}.do`}
             allActions={allActions}
             actions={action.do}
             updateActions={updateActions}
@@ -386,11 +372,11 @@ export function AddActionButtons({
 }
 
 export function DropZoneIndicator({
-  id,
+  actionLocation,
   onDrop: onDropCallback,
 }: {
-  id: string;
-  onDrop: (draggedId: string) => void;
+  actionLocation: string;
+  onDrop: (draggedLocation: string) => void;
 }) {
   const [visible, setVisible] = useState<boolean>(false);
 
@@ -403,9 +389,9 @@ export function DropZoneIndicator({
     ev.preventDefault();
     ev.stopPropagation();
 
-    const draggedId = ev.dataTransfer.getData("dragElementId");
+    const draggedActionLocation = ev.dataTransfer.getData("actionLocation");
 
-    draggedId && onDropCallback(draggedId);
+    draggedActionLocation && onDropCallback(draggedActionLocation);
     setVisible(false);
   }
 
@@ -415,33 +401,17 @@ export function DropZoneIndicator({
       onDragOver={dragOver}
       onDragEnter={() => setVisible(true)}
       onDragLeave={() => setVisible(false)}
-      className="drop-zone-indicator"
-      id={id}
-      style={{
-        display: "block",
-        opacity: visible ? 1 : 0, // must be visible and rendered for drag drop to work
-        margin: "0 auto",
-        width: "80%",
-        height: 15,
-        backgroundColor: "fuchsia",
-        borderRadius: 50,
-        position: "relative",
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          display: "block",
-          fontSize: 24,
-          fontWeight: "bold",
-          color: "white",
-          left: -66,
-          top: -12,
-          zIndex: 1,
-        }}
-      >
-        &gt;
-      </span>
-    </span>
+      className={`drop-zone-indicator ${visible ? 'visible' : ''}`}
+      data-action-location={actionLocation}
+      // style={{
+      //   display: "block",
+      //   opacity: visible ? 1 : 0, // must be visible and rendered for drag drop to work
+      //   margin: visible ? "5px auto" : "0 auto",
+      //   width: "100%",
+      //   height: visible ? 130 : 20,
+      //   backgroundColor: "rgba(123, 80, 252, 0.5)",
+      //   transition: "height 0.3s ease-in-out",
+      // }}
+    />
   );
 }
