@@ -8,6 +8,7 @@
 // Dragged item: Collapse to header only, summary of contents
 
 import React from "react";
+import ReactDOM from "react-dom/client";
 import { useState } from "react";
 
 export type Action =
@@ -25,7 +26,6 @@ export type Action =
     };
 
 function getItem(actions: Action[], locationParts: string[]): Action {
-  console.log("getItem", locationParts, "from", actions);
   // parsing first part to get an index
   const index = parseInt(locationParts[0], 10);
   const item = actions[index];
@@ -46,7 +46,6 @@ function getItem(actions: Action[], locationParts: string[]): Action {
 
 function removeItem(actions: Action[], locationParts: string[]): Action[] {
   // splitting the location so we isolate each step to go
-  console.log("removeItem", locationParts, "from", actions);
   // parsing first part to get an index
 
   const index = parseInt(locationParts[0], 10);
@@ -81,7 +80,7 @@ function addItem(
   action: Action
 ): Action[] {
   // splitting the location so we isolate each step to go
-  console.log("addItem", action, "to", actions, "at", locationParts);
+  //console.log("addItem", action, "to", actions, "at", locationParts);
   // parsing first part to get an index
 
   const index = parseInt(locationParts[0], 10);
@@ -115,7 +114,7 @@ function moveItem(
   fromLocation: string,
   toLocation: string
 ): Action[] {
-  console.log("actions", actions, "from", fromLocation, "to", toLocation);
+  //console.log("actions", actions, "from", fromLocation, "to", toLocation);
 
   const fromLocationParts = fromLocation
     .split(".")
@@ -125,7 +124,6 @@ function moveItem(
     .filter((e) => e !== "undefined");
 
   const actionMoved = getItem(actions, fromLocationParts);
-  console.log("actionMoved", actionMoved);
   actions = removeItem(actions, fromLocationParts);
 
   // TODO: Update index of toLocationParts based on fromLocationParts, in case action has been removed from an index before an item being added to
@@ -152,9 +150,7 @@ function moveItem(
     }
   }
 
-  console.log("actions after remove", actions);
   actions = addItem(actions, toLocationParts, actionMoved);
-  console.log("actions after added", actions);
   return actions;
 }
 
@@ -240,21 +236,46 @@ export function ActionItem({
     fontSize: 36,
     color: "white",
     cursor: "grab",
-    right: 40,
-    top: 0,
+    right: 30,
+    top: -20,
   } as React.CSSProperties;
+
+  const dragImage = (draggingType: string) => {
+    const element = document.createElement("div");
+    ReactDOM.createRoot(element).render(
+      <React.StrictMode>
+        <header
+          className={`header ${draggingType}`}
+        >
+          {draggingType}
+        </header>
+      </React.StrictMode>
+    );
+    element.style.position = "fixed";
+    element.style.top = "-1000px";
+    element.style.right = "-1000px";
+    document.body.appendChild(element);
+    return element;
+  };
 
   //@ts-ignore
   function handleDragStart(ev) {
-    //ev.preventDefault();
+    ev.stopPropagation();
     ev.dataTransfer.setData("actionLocation", ev.target.dataset.actionLocation);
     const item = ev.target;
-    setTimeout(() => item.classList.add("dragging"), 10);
+    item.classList.add("dragging");
+    const draggingType = ev.target.innerText.match(
+      /\b(Loop|Delay|If\/Then\/Otherwise)\b/gm
+    )[0];
+    ev.dataTransfer.setDragImage(
+      dragImage(draggingType),
+      300,
+      0
+    );
   }
 
   //@ts-ignore
   function handleDragEnd(ev) {
-    //ev.preventDefault();
     const item = ev.target;
     item.classList.remove("dragging");
   }
@@ -295,16 +316,14 @@ export function ActionItem({
           <h3>Then</h3>
           <ActionList
             actionListLocation={`${actionLocation}.then`}
-            allActions={allActions}
             actions={action.then}
-            updateActions={updateActions}
+            {...{ allActions, updateActions }}
           />
           <h3>Otherwise</h3>
           <ActionList
             actionListLocation={`${actionLocation}.else`}
-            allActions={allActions}
             actions={action.else}
-            updateActions={updateActions}
+            {...{ allActions, updateActions }}
           />
         </section>
       );
@@ -325,9 +344,8 @@ export function ActionItem({
           </header>
           <ActionList
             actionListLocation={`${actionLocation}.do`}
-            allActions={allActions}
             actions={action.do}
-            updateActions={updateActions}
+            {...{ allActions, updateActions }}
           />
         </section>
       );
@@ -383,6 +401,7 @@ export function DropZoneIndicator({
   function dragOver(ev: React.DragEvent<HTMLElement>) {
     ev.preventDefault();
     ev.stopPropagation();
+    setVisible(true);
   }
 
   function onDrop(ev: React.DragEvent<HTMLElement>) {
@@ -396,22 +415,16 @@ export function DropZoneIndicator({
   }
 
   return (
-    <span
+    <div
       onDrop={onDrop}
       onDragOver={dragOver}
-      onDragEnter={() => setVisible(true)}
       onDragLeave={() => setVisible(false)}
-      className={`drop-zone-indicator ${visible ? 'visible' : ''}`}
+      className={`drop-zone-indicator-container ${visible ? "visible" : ""}`}
       data-action-location={actionLocation}
-      // style={{
-      //   display: "block",
-      //   opacity: visible ? 1 : 0, // must be visible and rendered for drag drop to work
-      //   margin: visible ? "5px auto" : "0 auto",
-      //   width: "100%",
-      //   height: visible ? 130 : 20,
-      //   backgroundColor: "rgba(123, 80, 252, 0.5)",
-      //   transition: "height 0.3s ease-in-out",
-      // }}
-    />
+    >
+      <span
+        className="drop-zone-indicator"
+      />
+    </div>
   );
 }

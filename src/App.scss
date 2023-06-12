@@ -12,7 +12,7 @@
 }
 
 h3 {
-  background: #3954a3;
+  background: #5c41a29a;
 }
 
 .DesignOptions {
@@ -39,6 +39,26 @@ h3 {
   margin: 0 25px;
 }
 
+.DesignOne .dragging {
+  opacity: 0.3;
+}
+
+.Loop, .Delay, .If\/Then\/Otherwise {
+  text-align: center;
+  width: 400px;
+  border-radius: 8px;
+}
+
+.Loop {
+  background-color: #3954A3;
+}
+.Delay {
+  background-color: #318AA3;
+}
+.If\/Then\/Otherwise {
+  background-color: #5D41A2;
+}
+
 .Item {
   height: 50px;
   display: flex;
@@ -57,22 +77,24 @@ h3 {
   margin: 50px;
 }
 
-.DesignOne .dragging {
-  display: none;
+.drop-zone-indicator-container {
+  opacity: 0; // must be visible and rendered for drag drop to work
+  display: flex;
+  align-items: center;
+  height: 30px;
+}
+
+.drop-zone-indicator-container.visible {
+  opacity: 1;
 }
 
 .drop-zone-indicator {
   display: block;
-  opacity: 0; // must be visible and rendered for drag drop to work
   margin: 0 auto;
-  width: 100%;
-  height: 20px;
-  background-color: rgba(123, 80, 252, 0.5);
+  width: 95%;
+  height: 5px;
+  background-color: #ababab;
   transition: height 0.3s ease-in-out;
-}
-
-.DesignOne .drop-zone-indicator.visible {
-  opacity: 1;
   margin: 5px auto;
-  height: 130px;
+  border-radius: 5px;
 }
